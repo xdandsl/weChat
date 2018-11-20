@@ -43,6 +43,8 @@ const rp = require('request-promise-native');
 const {writeFile,readFile} = require('fs');//writeFile 和readFile均为fs上面异步的方法。
 const {appID,appsecret} = require('../config');
 const api = require('../api');
+const {writeFileAsync,readFileAsync} = require('../utils/tools');
+
 
 //异步的方法通常包含一个promise对象。根据promise对象的状态决定下一步执行的操作(.then()或者.catch())//或者配合async函数使用
 //如何判断是否是异步的方法:有一个回调函数
@@ -134,6 +136,72 @@ class Wechat {
 
   }
 
+  //有关ticket的5种方法，同access_token的5种方法类似
+  //1，获取ticket
+  async getTicket() {
+    const {access_token} = await this.fetchAccessToken();
+    const url = `${api.ticket}access_token=${access_token}`;
+    const result = await rp({method: 'GET', url, json: true});
+    //请求的json数据   JSON： {"access_token":"ACCESS_TOKEN","expires_in":7200}
+    //获取时设置access_token的过期时间。  当前获取时间+有效时间-提前刷新的5分钟时间    注意看单位为ms
+    return {
+      ticket:result.ticket,
+      ticket_expires_in: Date.now() + 7200000 - 300000
+    };
+  };
+
+  //2,保存ticket
+  saveTicket(filepath, ticket) {
+   return writeFileAsync(filepath,ticket);
+  }
+  //3,读取ticket
+  readTicket(filepath) {
+    return readFileAsync(filepath);
+  }
+  //4，判断ticket是否过期
+  isValidTicket({ticket_expires_in}) {
+    //这里的{expires_in}== 传入的accessToken对象，相当于解构赋值
+    //思路：当前时间与过期时间对比
+    return ticket_expires_in > Date.now();
+  }
+ //5,获取有效的ticket
+  fetchTicket() {
+    if (this.ticket && this.ticket_expires_in && this.isValidTicket(this)) {
+      console.log('进来了~');
+      //说明access_token是有效的
+      return Promise.resolve({ticket: this.ticket, ticket_expires_in: this.ticket_expires_in});
+    }
+    return this.readTicket('./ticket.txt')
+      .then(async res => {
+        //本地有access_token
+        //判断是否过期
+        if (this.isValidTicket(res)) {
+          //没过期
+          return res;
+        } else {
+          //过期
+          const ticket = await this.getTicket();
+          await this.saveTicket('./ticket.txt',ticket);
+          return ticket;
+        }
+      })
+      .catch(async err => {
+        const ticket = await this.getTicket();
+        await this.saveTicket('./ticket.txt',ticket);
+        console.log(ticket);
+
+        return ticket;
+      })
+      .then(res => {
+        //不管上面成功或者失败都会来到这
+        this.ticket = res.ticket;
+        this.ticket_expires_in = res.ticket_expires_in;
+
+        return Promise.resolve(res);
+      })
+  }
+
+
   //自定义菜单
   //6，创建菜单
   async createMenu(menu) {
@@ -178,80 +246,33 @@ class Wechat {
 
   //9,删除用户标签
   async deleteTag(id){
-    try{
-      const {access_token} = await this.fetchAccessToken();
-      const url = `${api.tag.deleteTag}access_token=${access_token}`;
-      return await rp({method:'POST',url,json:true,body:{"tag":{id}}});
-    }catch(e){
-      return 'deleteTag方法出了问题'+e;
-    }
-
+    const {access_token} = await this.fetchAccessToken();
+    const url = `${api.tag.deleteTag}access_token=${access_token}`;
+    return await rp({method:'POST',url,json:true,body:{"tag":{id}}});
   }
 
-  //10,获取标签下用户列表
-  async getTagUsers(tagid,next_openid=""){
-    try{
-      const {access_token} = await this.fetchAccessToken();
-      const url = `${api.tag.getTag}access_token=${access_token}`;
-      return await rp({method:'POST',url,json:true,body:{tagid,next_openid}});
-    }catch(e){
-      return 'getTagUsers方法出了问题'+e;
-    }
-  }
-
-  //11,批量为用户打标签
-  async batchUsersTag(openid_list,tagid){
-    try{
-      const {access_token} = await this.fetchAccessToken();
-      const url = `${api.tag.batch}access_token=${access_token}`;
-      return await rp({method:'POST',url,json:true,body:{openid_list,tagid}});
-    }catch(e){
-      return 'batchUsersTag方法出了问题'+e;
-    }
-  }
-
-  //12,群发消息
-  async sendAllByTag(options){
-    try{
-      const {access_token} = await this.fetchAccessToken();
-      const url = `${api.message.sendAll}access_token=${access_token}`;
-      return await rp({method:'POST',url,json:true,body:options});
-    }catch(e){
-      return 'sendAllByTag方法出了问题'+e;
-    }
-  }
-
+  //10,获取用户列表
 
 }
 
-
-(async () => {
- //  读取本地保存access_token（readAccessToken）
- // -
- //   - 判断是否过期（isValidAccessToken）
- // - 过期了, 重新发送请求，获取access_token（getAccessToken），保存下来（覆盖之前的）(saveAccessToken)
- //  - 没有过期, 直接使用
- //  - 没有
- //  - 发送请求，获取access_token，保存下来
-  //1,创建实例对象
-  const w = new Wechat();
-  // let result = await w.fetchAccessToken();
-
-  //群发消息测试
-  // const options ={
-  //   "filter":{
-  //     "is_to_all":true,
-  //     "tag_id":131
-  //   },
-  //   "text":{
-  //     "content":"此为群发文本消息"
-  //   },
-  //   "msgtype":"text"
-  // }
-  // let result = await w.sendAllByTag(options);
-  // console.log(result);
-
-})();
+module.exports = Wechat;
+// (async () => {
+//  //  读取本地保存access_token（readAccessToken）
+//  // -
+//  //   - 判断是否过期（isValidAccessToken）
+//  // - 过期了, 重新发送请求，获取access_token（getAccessToken），保存下来（覆盖之前的）(saveAccessToken)
+//  //  - 没有过期, 直接使用
+//  //  - 没有
+//  //  - 发送请求，获取access_token，保存下来
+//   //1,创建实例对象
+//   const w = new Wechat();
+//   let result = await w.fetchAccessToken();
+//   console.log(result);
+//
+//   result = await w.createMenu(require('./menu'));
+//   console.log(result);
+//
+// })();
 
 
 

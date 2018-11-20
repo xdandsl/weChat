@@ -6,18 +6,14 @@ const profix = `https://api.weixin.qq.com/`;
 //原则：把所有接口中，不变的量实时获取，变得量放在此模块中。。。
 module.exports = {
   accessToken:`${profix}cgi-bin/token?`,
+  ticket: `${profix}cgi-bin/ticket/getticket?type=jsapi&`,
   menu:{
     createMenu:`${profix}cgi-bin/menu/create?`,
     deleteMenu:`${profix}cgi-bin/menu/delete?`
   },
   tag:{
     createTag:`${profix}cgi-bin/tags/create?`,
-    deleteTag:`${profix}cgi-bin/tags/delete?`,
-    getTag:`${profix}/cgi-bin/user/tag/get?`,
-    batch:`${profix}/cgi-bin/tags/members/batchtagging?`
-  },
-  message:{
-    sendAll:`${profix}cgi-bin/message/mass/sendall?`
+    deleteTag:`${profix}cgi-bin/tags/delete?`
   }
 };
 
