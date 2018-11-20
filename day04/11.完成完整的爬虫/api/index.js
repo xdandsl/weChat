@@ -13,17 +13,7 @@ module.exports = {
   },
   tag:{
     createTag:`${profix}cgi-bin/tags/create?`,
-    deleteTag:`${profix}cgi-bin/tags/delete?`,
-    getTag:`${profix}/cgi-bin/user/tag/get?`,
-    batch:`${profix}/cgi-bin/tags/members/batchtagging?`
-  },
-  message:{
-    sendAll:`${profix}cgi-bin/message/mass/sendall?`
-  },
-  upload:{
-    uploadimg:`${profix}cgi-bin/media/uploadimg?`,
-    uploadnews:`${profix}cgi-bin/media/uploadnews?`,
-    uploadOthers:`${profix}cgi-bin/material/add_material?`
+    deleteTag:`${profix}cgi-bin/tags/delete?`
   }
 };
 

@@ -251,71 +251,7 @@ class Wechat {
     return await rp({method:'POST',url,json:true,body:{"tag":{id}}});
   }
 
-  //10,获取标签下用户列表
-  async getTagUsers(tagid,next_openid=""){
-    try{
-      const {access_token} = await this.fetchAccessToken();
-      const url = `${api.tag.getTag}access_token=${access_token}`;
-      return await rp({method:'POST',url,json:true,body:{tagid,next_openid}});
-    }catch(e){
-      return 'getTagUsers方法出了问题'+e;
-    }
-  }
-
-  //11,批量为用户打标签
-  async batchUsersTag(openid_list,tagid){
-    try{
-      const {access_token} = await this.fetchAccessToken();
-      const url = `${api.tag.batch}access_token=${access_token}`;
-      return await rp({method:'POST',url,json:true,body:{openid_list,tagid}});
-    }catch(e){
-      return 'batchUsersTag方法出了问题'+e;
-    }
-  }
-
-  //12,群发消息
-  async sendAllByTag(options){
-    try{
-      const {access_token} = await this.fetchAccessToken();
-      const url = `${api.message.sendAll}access_token=${access_token}`;
-      return await rp({method:'POST',url,json:true,body:options});
-    }catch(e){
-      return 'sendAllByTag方法出了问题'+e;
-    }
-  }
-
-  //13,素材管理方法
-  async uploadMaterial(type,material,body){
-    try{
-      const {access_token} = await this.fetchAccessToken();
-      let options = {method:'POST',json:true};
-      let url = '';
-      if(type = 'news'){
-        url = `${api.upload.uploadnews}access_token=${access_token}`;
-        options.body = material;
-      }else if(type === 'pic'){
-        url = `${api.upload.uploadimg}access_token=${access_token}`;
-        //以form表单上传
-        options.formData = {
-          media: createReadStream(material)
-        }
-      }else {
-        url = `${api.upload.uploadOthers}access_token=${access_token}&type=${type}`;
-        //以form表单上传
-        options.formData = {
-          media: createReadStream(material)
-        };
-        if (type === 'video') {
-          options.body = body;
-        }
-      }
-      options.url = url;
-      return await rp(options);
-
-    }catch(e){
-      return 'uploadMaterial方法出了问题'+e;
-    }
-  };
+  //10,获取用户列表
 
 }
 
